@@ -46,9 +46,8 @@ internal abstract class FakeResponseHandlerBase<TFakeResponseConfiguration>(
             return await base.SendAsync(request, cancellationToken);
         }
 
-        // TODO: Add check for path if it exists in configuration
-
-        if (FakeHeaderExistsAndValueMatches(headers))
+        if (FakeHeaderValueMatches(headers) &&
+            PathMatches(request))
         {
             return await FakeResponse();
         }
@@ -56,9 +55,13 @@ internal abstract class FakeResponseHandlerBase<TFakeResponseConfiguration>(
         return await base.SendAsync(request, cancellationToken);
     }
 
+    private bool PathMatches(HttpRequestMessage request) =>
+        string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path) ||
+        request.RequestUri?.AbsolutePath == _fakeResponseConfiguration.Path;
+
     protected abstract Task<HttpResponseMessage> FakeResponse();
 
-    private bool FakeHeaderExistsAndValueMatches(IHeaderDictionary headers)
+    private bool FakeHeaderValueMatches(IHeaderDictionary headers)
     {
         if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration.Value))
         {

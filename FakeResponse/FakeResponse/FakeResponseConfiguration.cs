@@ -18,4 +18,6 @@ internal interface IFakeResponseConfiguration
     string Value { get; }
 
     string? Path { get; }
+
+    HttpStatusCode StatusCode { get; }
 }

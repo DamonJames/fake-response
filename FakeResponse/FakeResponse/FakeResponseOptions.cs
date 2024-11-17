@@ -2,10 +2,10 @@
 
 public static class FakeResponseOptions
 {
-    public static FakeResponseSettings Global { get; } = new FakeResponseSettings();
+    public static Global Global { get; } = new Global();
 }
 
-public sealed class FakeResponseSettings
+public sealed class Global
 {
     public bool IsProductionEnvironment { get; set; } = true;
 
