@@ -3,7 +3,7 @@
 
 name: .NET
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -18,7 +18,10 @@ jobs:
         dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
+      working-directory: src/FakeResponse
     - name: Build
       run: dotnet build --no-restore
+      working-directory: src/FakeResponse
     - name: Test
       run: dotnet test --no-build --verbosity normal
+      working-directory: tests/FakeResponse
