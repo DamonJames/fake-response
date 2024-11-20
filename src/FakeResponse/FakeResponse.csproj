@@ -4,6 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>FakeResponse</PackageId>
+    <Authors>Damon Morris</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/damonjames/fake-response</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

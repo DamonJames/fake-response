@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FakeResponse\FakeResponse.csproj" />
+    <ProjectReference Include="..\..\src\FakeResponse\FakeResponse.csproj" />
   </ItemGroup>
 
   <ItemGroup>
