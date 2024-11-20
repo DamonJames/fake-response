@@ -35,7 +35,7 @@ jobs:
         run: dotnet test --no-build --verbosity normal
 
       - name: Pack
-        run: dotnet pack ./src/FakeResponse -c Release -o nupkgs --no-restore --no-build /p:PackageVersion=$VERSION
+        run: dotnet pack -c Release -o nupkgs --no-restore --no-build /p:PackageVersion=$VERSION
 
       - name: Publish
         if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
