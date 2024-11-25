@@ -8,8 +8,10 @@
     <Authors>Damon Morris</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/damonjames/fake-response</RepositoryUrl>
+    <PackageIcon>fakeresponse.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../../assets/fakeresponse.png" Pack="true" PackagePath=""/>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <InternalsVisibleTo Include="FakeResponse.Tests" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
