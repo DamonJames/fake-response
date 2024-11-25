@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>FakeResponse</PackageId>
+    <Description>
+      A fluent HTTP client extension to simulate fake responses from 3rd party APIs based on request headers 🚀
+    </Description>
     <Authors>Damon Morris</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/damonjames/fake-response</RepositoryUrl>
