@@ -10,49 +10,16 @@ public sealed class FakeResponseConfigurationBuilderShould
     {
         var builder = new FakeResponseConfigurationBuilder();
 
-        builder.ForHeaderValue("TestHeader")
-            .ForPath("TestPath")
-            .ReturnStatus(HttpStatusCode.NotExtended);
+        builder.ForHeader("name", "value")
+            .ForPath("path")
+            .ReturnStatus(HttpStatusCode.NotExtended)
+            .ReturnContent("content");
 
         var result = builder.Build();
 
-        result.Value.Should().Be("TestHeader");
-        result.Path.Should().Be("TestPath");
+        result.Header.Should().Be(("name", "value"));
+        result.Path.Should().Be("path");
         result.StatusCode.Should().Be(HttpStatusCode.NotExtended);
-    }
-
-    [Fact]
-    public void ReturnExpectedConfigurationWithoutPath()
-    {
-        var builder = new FakeResponseConfigurationBuilder();
-
-        builder.ForHeaderValue("TestHeader")
-            .ReturnStatus(HttpStatusCode.NotExtended);
-
-        var result = builder.Build();
-
-        result.Value.Should().Be("TestHeader");
-        result.Path.Should().Be(null);
-        result.StatusCode.Should().Be(HttpStatusCode.NotExtended);
-    }
-
-    [Fact]
-    public void ReturnExpectedConfigurationWithContent()
-    {
-        var builder = new FakeResponseConfigurationBuilder<TestClass>();
-
-        var content = new TestClass();
-
-        builder.ForHeaderValue("TestHeader")
-            .ReturnContent(content)
-            .ReturnStatus(HttpStatusCode.NotExtended);
-
-        var result = builder.Build();
-
-        result.Value.Should().Be("TestHeader");
-        result.Content.Should().Be(content);
-        result.StatusCode.Should().Be(HttpStatusCode.NotExtended);
+        result.Content.Should().Be("content");
     }
 }
-
-internal sealed class TestClass { }

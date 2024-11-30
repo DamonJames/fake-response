@@ -2,50 +2,16 @@
 
 namespace FakeResponse;
 
-public sealed class FakeResponseConfigurationBuilder<TFakeContent>
-{
-    private string _value = string.Empty;
-    private string? _path;
-    private HttpStatusCode _statusCode = HttpStatusCode.OK;
-    private TFakeContent? _content;
-
-    public FakeResponseConfigurationBuilder<TFakeContent> ForHeaderValue(string value)
-    {
-        _value = value;
-        return this;
-    }
-
-    public FakeResponseConfigurationBuilder<TFakeContent> ForPath(string path)
-    {
-        _path = path;
-        return this;
-    }
-
-    public FakeResponseConfigurationBuilder<TFakeContent> ReturnStatus(HttpStatusCode statusCode)
-    {
-        _statusCode = statusCode;
-        return this;
-    }
-
-    public FakeResponseConfigurationBuilder<TFakeContent> ReturnContent(TFakeContent content)
-    {
-        _content = content;
-        return this;
-    }
-
-    public FakeResponseConfiguration<TFakeContent> Build() =>
-        new(_value, _path, _statusCode, _content);
-}
-
 public sealed class FakeResponseConfigurationBuilder
 {
-    private string _value = string.Empty;
-    private string? _path;
+    private (string, string) _header = (string.Empty, string.Empty);
+    private string _path = string.Empty;
     private HttpStatusCode _statusCode = HttpStatusCode.OK;
+    private string _content = string.Empty;
 
-    public FakeResponseConfigurationBuilder ForHeaderValue(string value)
+    public FakeResponseConfigurationBuilder ForHeader(string name, string value)
     {
-        _value = value;
+        _header = (name, value);
         return this;
     }
 
@@ -61,6 +27,12 @@ public sealed class FakeResponseConfigurationBuilder
         return this;
     }
 
+    public FakeResponseConfigurationBuilder ReturnContent(string content)
+    {
+        _content = content;
+        return this;
+    }
+
     public FakeResponseConfiguration Build() =>
-        new(_value, _path, _statusCode);
+        new(_header, _path, _statusCode, _content);
 }
