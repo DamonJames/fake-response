@@ -7,6 +7,12 @@
 
 A simple HTTP client builder extension to intercept and return fake responses based on request headers
 
+## Contents
+
+1. [About](#about)
+2. [Quickstart](#quickstart)
+3. [Instructions](#instructions)
+
 ## About
 
 This package provides a customisable fake HTTP response handler for simulating third-party API responses based on request headers. Designed for end-to-end testing of front-end applications, back-end services, and databases, it allows developers to control and mock external service responses without relying on real third-party systems, test data, or their availability.
@@ -23,22 +29,109 @@ Key Features:
 This package is ideal for teams looking to enhance testing efficiency, reduce test flakiness, and gain confidence in their application's behavior in various external integration scenarios.
 
 ## Quickstart
-1. Download the latest version of the package via NuGet
-2. In your `Startup.cs` file, add the following settings:
+1. Download the latest version of `FakeResponse` via NuGet
+2. At the very start of where you are registering your services (in either `Startup.cs` or `Program.cs`) file, add the following settings:
+
 ```
 ...
 FakeResponseOptions.Global.IsProductionEnvironment = false;
-FakeResponseOptions.Global.HeaderName = "MyHeaderName";
 ...
 ```
-*Note*: the above example demonstrates simply hardcoding the production environment property to `false`, ensure in a real scenario there is suitable logic to detect whether the application is running in your production environment.
 
 3. In your middleware where you are building a new HTTP client calling out to an external API, add the following:
+
 ```
 builder.Services.AddHttpClient(...)
   .AddFakeResponseHandler(config => config
-    .ForHeaderValue("MyHeaderValue")
+    .ForHeader("MyHeaderName", "MyHeaderValue")
     .ReturnStatus(HttpStatusCode.OK));
 ```
+
 4. Run your app, ensure your endpoints are hooked up to call the client in question.
-5. Make requests with your fake headers and observe your fake response!
+5. Make requests with your fake header and observe your fake response 🎉
+
+## Instructions
+Find and install the latest version of `FakeResponse` via NuGet to your solution.
+
+### Setting up your environment
+Ensure you are injecting the `IHttpContextAccessor` during service registration. This allows for the fake response handlers to read the request headers.
+```
+builder.Services.AddHttpContextAccessor();
+```
+
+Ensure you have a method of detecting whether or not your service is running in a production environment.
+
+The following property will need to be set based on this within the service registration process (`Startup.cs`/`Program.cs`):
+
+```
+FakeResponseOptions.Global.IsProductionEnvironment = true/false;
+```
+
+This is to ensure that the fake response handlers are not registered as part of any http clients if the service is running in production.
+
+By default, this value is set to `true` to ensure that if this setting is missed, there is no chance of accidently deploying the fake response handlers in a production setting.
+
+This setting must be declared **before** the initialisation of any http clients that are configured to use fake response handlers.
+
+### Configuring your fake response handlers
+The fake response handler configuration extends on the `IHttpClientBuilder` interface which is used to set up http clients during service registration.
+
+Assuming you are using the built-in http client registration to inject your http clients, you would simply need to call the `AddFakeResponseHandler` extension method to begin configuration:
+
+```
+builder.Services.AddHttpClient(...).AddFakeResponseHandler(...);
+```
+
+The `AddFakeResponseHandler` extension method allows you to configure the specifications for returning a fake response in a fluent manner.
+
+There are currently four configuration points you can tune to your needs:
+
+#### 1. Header name & value
+This is required to declare the custom header name and the value it should be for which the handler will detect and determine whether to return the fake response from.
+
+#### 2. Request path
+This is an optional value you can provide which will allow for returning a fake response from a specific path of the request you are intercepting. If this is not provided, the fake response will be returned from all paths (if the configured header and value is passed through).
+
+#### 3. Status code
+This is an optional value you can provide to declare the status code to return in your fake response scenario. If this value is not provided, it is configured to return `HttpStatusCode.OK` by default.
+
+#### 4. String content
+This is an optional value you can provide to declare the string content to return in your fake response scenario.
+
+An example of the above configuration goes as follows:
+```
+builder.Services.AddHttpClient(...)
+  .AddFakeResponseHandler(config => config
+    .ForHeader("MyHeaderName", "MyHeaderValue")
+    .ForPath("/path/for/fake/response")
+    .ReturnStatus(HttpStatusCode.OK)
+    .ReturnContent("myStringContent"));
+```
+
+### Advance usage
+The fake response handler is built to handle multiple scenarios. The value of the custom header should represent the scenario(s) you are returning the fake response for. With this, you are able to declare multiple scenarios under one custom header.
+
+To do this, you simply need to comma-separate your header values
+```
+"MyHeaderName": "MyHeaderValue1,MyHeaderValue2"
+```
+And configure your handlers as so:
+```
+.AddFakeResponseHandler(config => config
+  .ForHeader("MyHeaderName", "MyHeaderValue1")
+  ...);
+...
+.AddFakeResponseHandler(config => config
+  .ForHeader("MyHeaderName", "MyHeaderValue2")
+  ...);
+```
+And both scenarios will be picked up by the handler.
+
+You may also want to setup multiple fake responses under one http client, which is also possible. You are able to set up multiple handlers quite easily by chaining the add fake response handler method calls like so
+```
+builder.Services.AddHttpClient(...)
+  .AddFakeResponseHandler(...)
+  .AddFakeResponseHandler(...)
+...
+```
+With the above, you can configure multiple scenarios for one http client however you wish.

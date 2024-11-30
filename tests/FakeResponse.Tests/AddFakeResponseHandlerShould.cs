@@ -23,7 +23,7 @@ public sealed class AddFakeResponseHandlerShould
         _httpClientBuilder.Services.Returns(serviceCollection);
         FakeResponseOptions.Global.IsProductionEnvironment = false;
 
-        _httpClientBuilder.AddFakeResponseHandler(opt => opt.ForHeaderValue("Test"));
+        _httpClientBuilder.AddFakeResponseHandler(opt => opt.ForHeader("name", "value"));
 
         var serviceDescriptor = serviceCollection
             .SingleOrDefault(sd => sd.ServiceType == typeof(FakeResponseHandler) && sd.Lifetime == ServiceLifetime.Transient);
@@ -40,6 +40,36 @@ public sealed class AddFakeResponseHandlerShould
 
         options.Should().NotBeNull();
         options.HttpMessageHandlerBuilderActions.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void AddMultipleFakeResponseHandlerToServiceCollectionAndHttpMessageBuilder()
+    {
+        var serviceCollection = new ServiceCollection();
+        _httpClientBuilder.Services.Returns(serviceCollection);
+        FakeResponseOptions.Global.IsProductionEnvironment = false;
+
+        _httpClientBuilder.AddFakeResponseHandler(opt => opt.ForHeader("name", "value"))
+            .AddFakeResponseHandler(opt => opt.ForHeader("name", "value"))
+            .AddFakeResponseHandler(opt => opt.ForHeader("name", "value"));
+
+        var serviceDescriptor = serviceCollection
+            .Where(sd => sd.ServiceType == typeof(FakeResponseHandler) && sd.Lifetime == ServiceLifetime.Transient);
+        serviceDescriptor.Should().NotBeNull();
+        serviceDescriptor.Should().HaveCount(3);
+
+        var httpClientFactoryOptionsDescriptor = serviceCollection
+            .Where(sd => sd.ServiceType == typeof(IConfigureOptions<HttpClientFactoryOptions>));
+        httpClientFactoryOptionsDescriptor.Should().NotBeNull();
+        serviceDescriptor.Should().HaveCount(3);
+
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>();
+        var options = optionsMonitor.Get("TestClient");
+
+        options.Should().NotBeNull();
+        options.HttpMessageHandlerBuilderActions.Should().HaveCount(3);
     }
 
     [Fact]
@@ -49,54 +79,10 @@ public sealed class AddFakeResponseHandlerShould
         _httpClientBuilder.Services.Returns(serviceCollection);
         FakeResponseOptions.Global.IsProductionEnvironment = true;
 
-        _httpClientBuilder.AddFakeResponseHandler(opt => opt.ForHeaderValue("Test"));
+        _httpClientBuilder.AddFakeResponseHandler(opt => opt.ForHeader("name", "value"));
 
         var serviceDescriptor = serviceCollection
             .SingleOrDefault(sd => sd.ServiceType == typeof(FakeResponseHandler) && sd.Lifetime == ServiceLifetime.Transient);
-        serviceDescriptor.Should().BeNull();
-
-        var httpClientFactoryOptionsDescriptor = serviceCollection
-            .SingleOrDefault(sd => sd.ServiceType == typeof(IConfigureOptions<HttpClientFactoryOptions>));
-        httpClientFactoryOptionsDescriptor.Should().BeNull();
-    }
-
-    [Fact]
-    public void AddFakeResponseHandlerWithContentToServiceCollectionAndHttpMessageBuilder()
-    {
-        var serviceCollection = new ServiceCollection();
-        _httpClientBuilder.Services.Returns(serviceCollection);
-        FakeResponseOptions.Global.IsProductionEnvironment = false;
-
-        _httpClientBuilder.AddFakeResponseHandler<object>(opt => opt.ReturnContent(new { }));
-
-        var serviceDescriptor = serviceCollection
-            .SingleOrDefault(sd => sd.ServiceType == typeof(FakeResponseHandler<object>) && sd.Lifetime == ServiceLifetime.Transient);
-        serviceDescriptor.Should().NotBeNull();
-
-        var httpClientFactoryOptionsDescriptor = serviceCollection
-            .SingleOrDefault(sd => sd.ServiceType == typeof(IConfigureOptions<HttpClientFactoryOptions>));
-        httpClientFactoryOptionsDescriptor.Should().NotBeNull();
-
-        var serviceProvider = serviceCollection.BuildServiceProvider();
-
-        var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>();
-        var options = optionsMonitor.Get("TestClient");
-
-        options.Should().NotBeNull();
-        options.HttpMessageHandlerBuilderActions.Should().HaveCount(1);
-    }
-
-    [Fact]
-    public void NotAddFakeResponseHandlerWithContentToServiceCollection()
-    {
-        var serviceCollection = new ServiceCollection();
-        _httpClientBuilder.Services.Returns(serviceCollection);
-        FakeResponseOptions.Global.IsProductionEnvironment = true;
-
-        _httpClientBuilder.AddFakeResponseHandler<object>(opt => opt.ReturnContent(new { }));
-
-        var serviceDescriptor = serviceCollection
-            .SingleOrDefault(sd => sd.ServiceType == typeof(FakeResponseHandler<object>) && sd.Lifetime == ServiceLifetime.Transient);
         serviceDescriptor.Should().BeNull();
 
         var httpClientFactoryOptionsDescriptor = serviceCollection

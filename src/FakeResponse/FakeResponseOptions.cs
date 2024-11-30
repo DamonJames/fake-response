@@ -8,6 +8,4 @@ public static class FakeResponseOptions
 public sealed class Global
 {
     public bool IsProductionEnvironment { get; set; } = true;
-
-    public string HeaderName { get; set; } = string.Empty;
 }

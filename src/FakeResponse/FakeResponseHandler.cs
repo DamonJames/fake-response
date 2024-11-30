@@ -1,55 +1,27 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Text.Json;
 
 namespace FakeResponse;
 
 internal sealed class FakeResponseHandler(
     IHttpContextAccessor httpContextAccessor,
-    FakeResponseConfiguration fakeResponseConfiguration) :
-    FakeResponseHandlerBase<FakeResponseConfiguration>(httpContextAccessor, fakeResponseConfiguration)
-{
-    private readonly FakeResponseConfiguration _fakeResponseConfiguration = fakeResponseConfiguration;
-
-    protected override Task<HttpResponseMessage> FakeResponse() =>
-        Task.FromResult(new HttpResponseMessage(_fakeResponseConfiguration.StatusCode));
-}
-
-internal sealed class FakeResponseHandler<TFakeContent>(
-    IHttpContextAccessor httpContextAccessor,
-    FakeResponseConfiguration<TFakeContent> fakeResponseConfiguration) :
-    FakeResponseHandlerBase<FakeResponseConfiguration<TFakeContent>>(httpContextAccessor, fakeResponseConfiguration)
-{
-    private readonly FakeResponseConfiguration<TFakeContent> _fakeResponseConfiguration = fakeResponseConfiguration;
-
-    protected override Task<HttpResponseMessage> FakeResponse() =>
-        Task.FromResult(
-            new HttpResponseMessage(_fakeResponseConfiguration.StatusCode)
-            {
-                Content = new StringContent(JsonSerializer.Serialize(_fakeResponseConfiguration.Content))
-            });
-}
-
-internal abstract class FakeResponseHandlerBase<TFakeResponseConfiguration>(
-    IHttpContextAccessor httpContextAccessor,
-    IFakeResponseConfiguration fakeResponseConfiguration) : DelegatingHandler
-    where TFakeResponseConfiguration : IFakeResponseConfiguration
+    FakeResponseConfiguration fakeResponseConfiguration) : DelegatingHandler
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly IFakeResponseConfiguration _fakeResponseConfiguration = fakeResponseConfiguration;
+    private readonly FakeResponseConfiguration _fakeResponseConfiguration = fakeResponseConfiguration;
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var headers = _httpContextAccessor.HttpContext?.Request?.Headers;
 
-        if (headers == null)
-        {
-            return await base.SendAsync(request, cancellationToken);
-        }
-
-        if (FakeHeaderValueMatches(headers) &&
+        if (FakeHeaderMatches(headers) &&
             PathMatches(request))
         {
-            return await FakeResponse();
+            var response = new HttpResponseMessage(_fakeResponseConfiguration.StatusCode)
+            {
+                Content = new StringContent(_fakeResponseConfiguration.Content)
+            };
+
+            return await Task.FromResult(response);
         }
 
         return await base.SendAsync(request, cancellationToken);
@@ -59,16 +31,20 @@ internal abstract class FakeResponseHandlerBase<TFakeResponseConfiguration>(
         string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path) ||
         request.RequestUri?.AbsolutePath == _fakeResponseConfiguration.Path;
 
-    protected abstract Task<HttpResponseMessage> FakeResponse();
-
-    private bool FakeHeaderValueMatches(IHeaderDictionary headers)
+    private bool FakeHeaderMatches(IHeaderDictionary? headers)
     {
-        if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration.Value))
+        if (headers == null)
         {
             return false;
         }
 
-        if (!headers.TryGetValue(FakeResponseOptions.Global.HeaderName, out var fakeHeaderValue))
+        if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration.Header.name) ||
+            string.IsNullOrWhiteSpace(_fakeResponseConfiguration.Header.value))
+        {
+            return false;
+        }
+
+        if (!headers.TryGetValue(_fakeResponseConfiguration.Header.name, out var fakeHeaderValue))
         {
             return false;
         }
@@ -87,7 +63,7 @@ internal abstract class FakeResponseHandlerBase<TFakeResponseConfiguration>(
             return false;
         }
 
-        if (splitHeaderValues.Contains(_fakeResponseConfiguration.Value))
+        if (splitHeaderValues.Contains(_fakeResponseConfiguration.Header.value))
         {
             return true;
         }

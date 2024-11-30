@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using System.Net;
-using System.Text.Json;
 
 namespace FakeResponse.Tests;
 
@@ -14,8 +13,6 @@ public sealed class FakeResponseHandlerShould
 
     public FakeResponseHandlerShould()
     {
-        FakeResponseOptions.Global.HeaderName = "TestHeader";
-
         _httpContextAccessor = Substitute.For<IHttpContextAccessor>();
 
         _context = new DefaultHttpContext();
@@ -26,12 +23,13 @@ public sealed class FakeResponseHandlerShould
     [Fact]
     public async Task ReturnFakeResponseWhenHeaderValueMatches()
     {
-        _context.Request.Headers["TestHeader"] = "TestValue";
+        _context.Request.Headers["name"] = "value";
 
         var configuration = new FakeResponseConfiguration(
-            Value: "TestValue",
-            Path: null,
-            StatusCode: HttpStatusCode.Gone);
+            Header: ("name", "value"),
+            Path: string.Empty,
+            StatusCode: HttpStatusCode.Gone,
+            Content: "content");
 
         var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
         {
@@ -42,44 +40,22 @@ public sealed class FakeResponseHandlerShould
 
         var response = await invoker.SendAsync(new HttpRequestMessage(), default);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Gone);
-    }
-
-    [Fact]
-    public async Task ReturnFakeResponseWithContentWhenHeaderValueMatches()
-    {
-        _context.Request.Headers["TestHeader"] = "TestValue";
-
-        var configuration = new FakeResponseConfiguration<TestContent>(
-            Value: "TestValue",
-            Path: null,
-            StatusCode: HttpStatusCode.Gone,
-            Content: new TestContent());
-
-        var sut = new FakeResponseHandler<TestContent>(_httpContextAccessor, configuration)
-        {
-            InnerHandler = new TestHandler()
-        };
-
-        var invoker = new HttpMessageInvoker(sut);
-
-        var response = await invoker.SendAsync(new HttpRequestMessage(), default);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Gone);
         var content = await response.Content.ReadAsStringAsync();
-        var contentResult = JsonSerializer.Deserialize<TestContent>(content);
-        contentResult.Should().NotBeNull().And.BeEquivalentTo(new TestContent());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Gone);
+        content.Should().Be("content");
     }
 
     [Fact]
     public async Task ReturnFakeResponseWhenHeaderValueMatchesAndPathDefined()
     {
-        _context.Request.Headers["TestHeader"] = "TestValue";
+        _context.Request.Headers["name"] = "value";
 
         var configuration = new FakeResponseConfiguration(
-            Value: "TestValue",
+            Header: ("name", "value"),
             Path: "/path/for/fakeResponse",
-            StatusCode: HttpStatusCode.Gone);
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
 
         var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
         {
@@ -101,12 +77,13 @@ public sealed class FakeResponseHandlerShould
     [Fact]
     public async Task ReturnRealResponseWhenHeaderValueMatchesButPathDoesNot()
     {
-        _context.Request.Headers["TestHeader"] = "TestValue";
+        _context.Request.Headers["name"] = "value";
 
         var configuration = new FakeResponseConfiguration(
-            Value: "TestValue",
+            Header: ("name", "value"),
             Path: "/path/for/fakeResponse",
-            StatusCode: HttpStatusCode.Gone);
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
 
         var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
         {
@@ -128,12 +105,13 @@ public sealed class FakeResponseHandlerShould
     [Fact]
     public async Task ReturnRealResponseWhenHeaderValueDoesNotMatch()
     {
-        _context.Request.Headers["TestHeader"] = "AnotherValue";
+        _context.Request.Headers["name"] = "anotherValue";
 
         var configuration = new FakeResponseConfiguration(
-            Value: "TestValue",
-            Path: null,
-            StatusCode: HttpStatusCode.Gone);
+            Header: ("name", "value"),
+            Path: string.Empty,
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
 
         var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
         {
@@ -153,9 +131,10 @@ public sealed class FakeResponseHandlerShould
         _httpContextAccessor.HttpContext.Returns(null as HttpContext);
 
         var configuration = new FakeResponseConfiguration(
-            Value: "TestValue",
-            Path: null,
-            StatusCode: HttpStatusCode.Gone);
+            Header: ("name", "value"),
+            Path: string.Empty,
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
 
         var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
         {
@@ -174,9 +153,4 @@ public sealed class TestHandler : DelegatingHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
         Task.FromResult(new HttpResponseMessage(HttpStatusCode.UnavailableForLegalReasons));
-}
-
-public sealed class TestContent
-{
-    public string Content { get; } = "This is an example content response";
 }
