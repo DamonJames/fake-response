@@ -47,7 +47,7 @@ public sealed class FakeResponseHandlerShould
     }
 
     [Fact]
-    public async Task ReturnFakeResponseWhenHeaderValueMatchesAndPathDefined()
+    public async Task ReturnFakeResponseWhenHeaderValueMatchesAndAbsolutePathDefined()
     {
         _context.Request.Headers["name"] = "value";
 
@@ -66,7 +66,35 @@ public sealed class FakeResponseHandlerShould
 
         var request = new HttpRequestMessage()
         {
-            RequestUri = new Uri("https://example.com/path/for/fakeResponse")
+            RequestUri = new Uri("https://example.com/path/for/fakeResponse", UriKind.Absolute)
+        };
+
+        var response = await invoker.SendAsync(request, default);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Gone);
+    }
+
+    [Fact]
+    public async Task ReturnFakeResponseWhenHeaderValueMatchesAndRelativePathDefined()
+    {
+        _context.Request.Headers["name"] = "value";
+
+        var configuration = new FakeResponseConfiguration(
+            Header: ("name", "value"),
+            Path: "/path/for/fakeResponse",
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
+
+        var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var invoker = new HttpMessageInvoker(sut);
+
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri("/path/for/fakeResponse", UriKind.Relative)
         };
 
         var response = await invoker.SendAsync(request, default);

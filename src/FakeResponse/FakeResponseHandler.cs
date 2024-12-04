@@ -27,9 +27,21 @@ internal sealed class FakeResponseHandler(
         return await base.SendAsync(request, cancellationToken);
     }
 
-    private bool PathMatches(HttpRequestMessage request) =>
-        string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path) ||
-        request.RequestUri?.AbsolutePath == _fakeResponseConfiguration.Path;
+    private bool PathMatches(HttpRequestMessage request)
+    {
+        if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path) ||
+            request.RequestUri == null)
+        {
+            return true;
+        }
+
+        if (request.RequestUri.IsAbsoluteUri)
+        {
+            return request.RequestUri?.AbsolutePath == _fakeResponseConfiguration.Path;
+        }
+
+        return request.RequestUri.ToString() == _fakeResponseConfiguration.Path;
+    }
 
     private bool FakeHeaderMatches(IHeaderDictionary? headers)
     {
