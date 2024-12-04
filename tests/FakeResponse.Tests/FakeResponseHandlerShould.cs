@@ -103,6 +103,34 @@ public sealed class FakeResponseHandlerShould
     }
 
     [Fact]
+    public async Task ReturnRealResponseWhenPathProvidedButRequestUriIsNull()
+    {
+        _context.Request.Headers["name"] = "value";
+
+        var configuration = new FakeResponseConfiguration(
+            Header: ("name", "value"),
+            Path: "/path/for/fakeResponse",
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
+
+        var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var invoker = new HttpMessageInvoker(sut);
+
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = null
+        };
+
+        var response = await invoker.SendAsync(request, default);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnavailableForLegalReasons);
+    }
+
+    [Fact]
     public async Task ReturnRealResponseWhenHeaderValueMatchesButPathDoesNot()
     {
         _context.Request.Headers["name"] = "value";

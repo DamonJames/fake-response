@@ -29,10 +29,14 @@ internal sealed class FakeResponseHandler(
 
     private bool PathMatches(HttpRequestMessage request)
     {
-        if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path) ||
-            request.RequestUri == null)
+        if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path))
         {
             return true;
+        }
+
+        if (request.RequestUri == null)
+        {
+            return false;
         }
 
         if (request.RequestUri.IsAbsoluteUri)
