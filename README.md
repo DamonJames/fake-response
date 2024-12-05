@@ -89,21 +89,54 @@ There are currently four configuration points you can tune to your needs:
 #### 1. Header name & value
 This is required to declare the custom header name and the value it should be for which the handler will detect and determine whether to return the fake response from.
 
+##### Example:
+```
+.ForHeader("MyHeaderName", "MyHeaderValue")
+```
+
 #### 2. Request path
 This is an optional value you can provide which will allow for returning a fake response from a specific path of the request you are intercepting. If this is not provided, the fake response will be returned from all paths (if the configured header and value is passed through).
 
-#### 3. Status code
+##### Example:
+```
+.ForPath("/path/for/fake/response")
+```
+
+#### 3. Query parameters
+This is an optional configuration you can provide to return fake responses based on requests made with query parameters. If this is not provided, the fake response will be returned for all query parameters (if the configured header and value is passed through). You are able to add as many as needed by chaining the method calls to add query parameters.
+
+There are two ways you can provide query parameters; either by simply providing the query parameter key and value, or by providing a key and a function which passes through the query parameter value where you are able to run custom matching logic if your http request passes through dynamic query parameters which can differ with every request.
+
+##### Example:
+```
+.ForQueryParameter("utm_source", "mobile")
+.ForQueryParameter("userFilter", (value) => value.StartsWith("email eq"))
+```
+
+#### 4. Status code
 This is an optional value you can provide to declare the status code to return in your fake response scenario. If this value is not provided, it is configured to return `HttpStatusCode.OK` by default.
 
-#### 4. String content
+##### Example:
+```
+.ReturnStatus(HttpStatusCode.OK)
+```
+
+#### 5. String content
 This is an optional value you can provide to declare the string content to return in your fake response scenario.
 
-An example of the above configuration goes as follows:
+##### Example:
+```
+.ReturnContent("myStringContent")
+```
+
+A full example of the above configuration goes as follows:
 ```
 builder.Services.AddHttpClient(...)
   .AddFakeResponseHandler(config => config
     .ForHeader("MyHeaderName", "MyHeaderValue")
     .ForPath("/path/for/fake/response")
+    .ForQueryParameter("utm_source", "mobile")
+    .ForQueryParameter("userFilter", (value) => value.StartsWith("email eq"))
     .ReturnStatus(HttpStatusCode.OK)
     .ReturnContent("myStringContent"));
 ```
