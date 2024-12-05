@@ -28,6 +28,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: string.Empty,
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: "content");
 
@@ -54,6 +56,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: "/path/for/fakeResponse",
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: string.Empty);
 
@@ -82,6 +86,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: "/path/for/fakeResponse",
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: string.Empty);
 
@@ -103,6 +109,76 @@ public sealed class FakeResponseHandlerShould
     }
 
     [Fact]
+    public async Task ReturnFakeResponseWhenQueryParametersMatch()
+    {
+        _context.Request.Headers["name"] = "value";
+
+        Dictionary<string, string> queryParameters = [];
+
+        queryParameters.Add("fakeQueryParam", "fakeValue");
+        queryParameters.Add("anotherQueryParam", "testValue");
+
+        var configuration = new FakeResponseConfiguration(
+            Header: ("name", "value"),
+            Path: string.Empty,
+            QueryParameters: queryParameters,
+            DynamicQueryParameters: [],
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
+
+        var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var invoker = new HttpMessageInvoker(sut);
+
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri("https://example.com?fakeQueryParam=fakeValue&anotherQueryParam=testValue")
+        };
+
+        var response = await invoker.SendAsync(request, default);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Gone);
+    }
+
+    [Fact]
+    public async Task ReturnFakeResponseWhenDynamicQueryParametersMatch()
+    {
+        _context.Request.Headers["name"] = "value";
+
+        Dictionary<string, Func<string, bool>> dynamicQueryParameters = [];
+
+        dynamicQueryParameters.Add("dynamicParamOne", (qp) => qp.StartsWith("email eq "));
+        dynamicQueryParameters.Add("dynamicParamTwo", (qp) => qp.Contains("THIS"));
+
+        var configuration = new FakeResponseConfiguration(
+            Header: ("name", "value"),
+            Path: string.Empty,
+            QueryParameters: [],
+            DynamicQueryParameters: [],
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
+
+        var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var invoker = new HttpMessageInvoker(sut);
+
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri("https://example.com?dynamicParamOne=email eq test@gmail.com&dynamicParamTwo=somethingTHISsomething")
+        };
+
+        var response = await invoker.SendAsync(request, default);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Gone);
+    }
+
+    [Fact]
     public async Task ReturnRealResponseWhenPathProvidedButRequestUriIsNull()
     {
         _context.Request.Headers["name"] = "value";
@@ -110,6 +186,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: "/path/for/fakeResponse",
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: string.Empty);
 
@@ -138,6 +216,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: "/path/for/fakeResponse",
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: string.Empty);
 
@@ -159,6 +239,74 @@ public sealed class FakeResponseHandlerShould
     }
 
     [Fact]
+    public async Task ReturnRealResponseWhenHeaderValueMatchesButQueryParametersDoNot()
+    {
+        _context.Request.Headers["name"] = "value";
+
+        Dictionary<string, string> queryParameters = [];
+
+        queryParameters.Add("fakeQueryParam", "fakeValue");
+
+        var configuration = new FakeResponseConfiguration(
+            Header: ("name", "value"),
+            Path: string.Empty,
+            QueryParameters: queryParameters,
+            DynamicQueryParameters: [],
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
+
+        var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var invoker = new HttpMessageInvoker(sut);
+
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri("https://example.com?test=value")
+        };
+
+        var response = await invoker.SendAsync(request, default);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnavailableForLegalReasons);
+    }
+
+    [Fact]
+    public async Task ReturnRealResponseWhenHeaderValueMatchesButDynamicQueryParametersDoNot()
+    {
+        _context.Request.Headers["name"] = "value";
+
+        Dictionary<string, Func<string, bool>> dynamicQueryParameters = [];
+
+        dynamicQueryParameters.Add("dynamicParamOne", (qp) => qp.StartsWith("email eq "));
+
+        var configuration = new FakeResponseConfiguration(
+            Header: ("name", "value"),
+            Path: string.Empty,
+            QueryParameters: [],
+            DynamicQueryParameters: dynamicQueryParameters,
+            StatusCode: HttpStatusCode.Gone,
+            Content: string.Empty);
+
+        var sut = new FakeResponseHandler(_httpContextAccessor, configuration)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var invoker = new HttpMessageInvoker(sut);
+
+        var request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri("https://example.com?test=value")
+        };
+
+        var response = await invoker.SendAsync(request, default);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnavailableForLegalReasons);
+    }
+
+    [Fact]
     public async Task ReturnRealResponseWhenHeaderValueDoesNotMatch()
     {
         _context.Request.Headers["name"] = "anotherValue";
@@ -166,6 +314,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: string.Empty,
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: string.Empty);
 
@@ -189,6 +339,8 @@ public sealed class FakeResponseHandlerShould
         var configuration = new FakeResponseConfiguration(
             Header: ("name", "value"),
             Path: string.Empty,
+            QueryParameters: [],
+            DynamicQueryParameters: [],
             StatusCode: HttpStatusCode.Gone,
             Content: string.Empty);
 
