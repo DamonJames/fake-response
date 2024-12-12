@@ -12,12 +12,20 @@ internal sealed class FakeResponseHandler(
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        if (_httpContextAccessor.HttpContext?.Request?.Headers == null ||
+            request.RequestUri == null)
+        {
+            return await base.SendAsync(request, cancellationToken);
+        }
+
         var headers = _httpContextAccessor.HttpContext?.Request?.Headers;
 
+        var requestUri = request.RequestUri.IsAbsoluteUri ? request.RequestUri : new Uri($"https://example.com{request.RequestUri}");
+
         if (FakeHeaderMatches(headers) &&
-            PathMatches(request) &&
-            QueryParamsMatch(request) &&
-            DynamicQueryParamsMatch(request))
+            PathMatches(requestUri) &&
+            QueryParamsMatch(requestUri) &&
+            DynamicQueryParamsMatch(requestUri))
         {
             var response = new HttpResponseMessage(_fakeResponseConfiguration.StatusCode)
             {
@@ -30,44 +38,29 @@ internal sealed class FakeResponseHandler(
         return await base.SendAsync(request, cancellationToken);
     }
 
-    private bool PathMatches(HttpRequestMessage request)
+    private bool PathMatches(Uri requestUri)
     {
         if (string.IsNullOrWhiteSpace(_fakeResponseConfiguration?.Path))
         {
             return true;
         }
 
-        if (request.RequestUri == null)
-        {
-            return false;
-        }
-
-        if (request.RequestUri.IsAbsoluteUri)
-        {
-            return request.RequestUri?.AbsolutePath == _fakeResponseConfiguration.Path;
-        }
-
-        return request.RequestUri.ToString() == _fakeResponseConfiguration.Path;
+        return requestUri.AbsolutePath == _fakeResponseConfiguration.Path;
     }
 
-    private bool QueryParamsMatch(HttpRequestMessage request)
+    private bool QueryParamsMatch(Uri requestUri)
     {
         if (_fakeResponseConfiguration.QueryParameters.Count == 0)
         {
             return true;
         }
 
-        if (request.RequestUri == null)
+        if (string.IsNullOrWhiteSpace(requestUri.Query))
         {
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(request.RequestUri.Query))
-        {
-            return false;
-        }
-
-        var queryParams = HttpUtility.ParseQueryString(request.RequestUri.Query);
+        var queryParams = HttpUtility.ParseQueryString(requestUri.Query);
 
         if (queryParams.Count == 0)
         {
@@ -92,24 +85,19 @@ internal sealed class FakeResponseHandler(
         });
     }
 
-    private bool DynamicQueryParamsMatch(HttpRequestMessage request)
+    private bool DynamicQueryParamsMatch(Uri requestUri)
     {
         if (_fakeResponseConfiguration.DynamicQueryParameters.Count == 0)
         {
             return true;
         }
 
-        if (request.RequestUri == null)
+        if (string.IsNullOrWhiteSpace(requestUri.Query))
         {
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(request.RequestUri.Query))
-        {
-            return false;
-        }
-
-        var queryParams = HttpUtility.ParseQueryString(request.RequestUri.Query);
+        var queryParams = HttpUtility.ParseQueryString(requestUri.Query);
 
         if (queryParams.Count == 0)
         {
